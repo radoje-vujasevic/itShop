@@ -42,6 +42,11 @@ class ItemListViewController: UITableViewController{
     
     //MARK: - Fetching from API
     func loadItems(){
+        let activityIndicator = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.large)
+        activityIndicator.center = view.center
+        activityIndicator.startAnimating()
+        view.addSubview(activityIndicator)
+        
         let apiURL = "https://digitalvision.rs/parametri.php?action=artikliPoKategorijiEng&id=\(categoryID!)"
         
         if let url = URL(string: apiURL) {
@@ -54,6 +59,7 @@ class ItemListViewController: UITableViewController{
                     if let items = self.parseJSON(safeData) {
                         self.items = items
                         DispatchQueue.main.async{
+                            activityIndicator.stopAnimating()
                             self.tableView.reloadData()
                         }
                     }

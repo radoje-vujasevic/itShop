@@ -14,12 +14,13 @@ class CategoriesViewController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
+        
         if (start){
             loadCategories()
         }
-    }
         
+    }
+    
     //MARK: - Tableview Datasource Methods
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return categories.count
@@ -62,6 +63,11 @@ class CategoriesViewController: UITableViewController {
     
     //MARK: - Fetching from API
     func loadCategories(){
+        let activityIndicator = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.large)
+        activityIndicator.center = view.center
+        activityIndicator.startAnimating()
+        view.addSubview(activityIndicator)
+        
         let apiURL = "http://digitalvision.rs:8080/articleCategories/?showAll=true"
         
         if let url = URL(string: apiURL) {
@@ -74,6 +80,7 @@ class CategoriesViewController: UITableViewController {
                     if let categories = self.parseJSON(safeData) {
                         self.categories = categories
                         DispatchQueue.main.async{
+                            activityIndicator.stopAnimating()
                             self.tableView.reloadData()
                         }
                     }
