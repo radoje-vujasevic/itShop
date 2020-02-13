@@ -30,7 +30,7 @@ class CategoriesViewController: UITableViewController {
     
     //MARK: - TableView Delegate Methods
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        performSegue(withIdentifier: "segueToSubCategories1", sender: self)
+        performSegue(withIdentifier: "segueToSubCategories", sender: self)
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
@@ -66,7 +66,7 @@ class CategoriesViewController: UITableViewController {
     func parseJSON(_ data: Data) -> Array<Category>?{
         let decoder = JSONDecoder()
         do {
-            let decodedData = try decoder.decode(Array<Category >.self, from: data)
+            let decodedData = try decoder.decode(Array<Category>.self, from: data)
             return decodedData
             
         } catch {

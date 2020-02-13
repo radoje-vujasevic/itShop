@@ -33,17 +33,17 @@
                     <navigationItem key="navigationItem" title="Start" id="c4v-sb-RyW"/>
                     <connections>
                         <outlet property="view" destination="FH1-gd-vBr" id="pdD-OQ-hP7"/>
-                        <segue destination="wo4-hW-aFv" kind="show" identifier="segueToSubCategories1" id="tKK-RR-jBz"/>
+                        <segue destination="wo4-hW-aFv" kind="show" identifier="segueToSubCategories" id="tKK-RR-jBz"/>
                     </connections>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="oiY-QE-k3l" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="264" y="-394"/>
         </scene>
-        <!--SubCategories1-->
+        <!--SubCategory-->
         <scene sceneID="Ssj-ag-yai">
             <objects>
-                <tableViewController id="wo4-hW-aFv" customClass="SubCategoriesViewController" customModule="itShop" customModuleProvider="target" sceneMemberID="viewController">
+                <tableViewController storyboardIdentifier="SubCategory" useStoryboardIdentifierAsRestorationIdentifier="YES" id="wo4-hW-aFv" customClass="SubCategoriesViewController" customModule="itShop" customModuleProvider="target" sceneMemberID="viewController">
                     <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" id="D5l-Lk-RSp">
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -63,15 +63,14 @@
                             <outlet property="delegate" destination="wo4-hW-aFv" id="gJX-4D-esD"/>
                         </connections>
                     </tableView>
-                    <navigationItem key="navigationItem" title="SubCategories1" id="Vtr-sR-XQe"/>
+                    <navigationItem key="navigationItem" title="SubCategory" id="Vtr-sR-XQe"/>
                     <connections>
-                        <segue destination="T7H-Ej-710" kind="show" identifier="segueToSubCategories2" id="EeP-wz-DlF"/>
                         <segue destination="KEk-Nw-tYQ" kind="show" identifier="segueToItemList" id="b4a-Sk-8Ar"/>
                     </connections>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dfc-vf-QhA" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1186" y="-394"/>
+            <point key="canvasLocation" x="1212" y="-394"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="EQK-Xi-AYd">
@@ -90,38 +89,6 @@
                 <placeholder placeholderIdentifier="IBFirstResponder" id="WCR-N4-8FF" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="-646" y="-394"/>
-        </scene>
-        <!--SubCategories2-->
-        <scene sceneID="F9Q-Y0-sS4">
-            <objects>
-                <tableViewController id="T7H-Ej-710" customClass="SubCategoriesViewController" customModule="itShop" customModuleProvider="target" sceneMemberID="viewController">
-                    <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" id="HE9-gG-A8D">
-                        <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor" cocoaTouchSystemColor="whiteColor"/>
-                        <prototypes>
-                            <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="subCategoryCell" id="6sK-Da-R21">
-                                <rect key="frame" x="0.0" y="28" width="414" height="43.5"/>
-                                <autoresizingMask key="autoresizingMask"/>
-                                <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="6sK-Da-R21" id="34u-8L-ASN">
-                                    <rect key="frame" x="0.0" y="0.0" width="414" height="43.5"/>
-                                    <autoresizingMask key="autoresizingMask"/>
-                                </tableViewCellContentView>
-                            </tableViewCell>
-                        </prototypes>
-                        <connections>
-                            <outlet property="dataSource" destination="T7H-Ej-710" id="Rmd-9S-b6j"/>
-                            <outlet property="delegate" destination="T7H-Ej-710" id="ymd-ma-Y1N"/>
-                        </connections>
-                    </tableView>
-                    <navigationItem key="navigationItem" title="SubCategories2" id="Xgj-T2-6hp"/>
-                    <connections>
-                        <segue destination="KEk-Nw-tYQ" kind="show" identifier="segueToItemList" id="Aau-Yh-3pM"/>
-                    </connections>
-                </tableViewController>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="TDC-qf-akw" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
-            </objects>
-            <point key="canvasLocation" x="2187" y="-394"/>
         </scene>
         <!--List of Items-->
         <scene sceneID="cwM-PC-KJG">
@@ -153,7 +120,7 @@
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="DJd-JD-QAS" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="2187" y="334"/>
+            <point key="canvasLocation" x="2078" y="-394"/>
         </scene>
         <!--Item-->
         <scene sceneID="VIt-V7-X0g">
@@ -169,10 +136,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="Cag-bX-3dD" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="3064" y="333"/>
+            <point key="canvasLocation" x="3035" y="-394"/>
         </scene>
     </scenes>
-    <inferredMetricsTieBreakers>
-        <segue reference="b4a-Sk-8Ar"/>
-    </inferredMetricsTieBreakers>
 </document>

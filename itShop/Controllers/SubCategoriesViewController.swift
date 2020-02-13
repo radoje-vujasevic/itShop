@@ -29,9 +29,12 @@ class SubCategoriesViewController: UITableViewController{
     
     //MARK: - TableView Delegate Methods
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        // If there are children categories and there is more than one child category --> List of categories
+        // If there are children categories and there is more than one child category --> Push to navigation controller this ViewController as next view
         if (childCategories[indexPath.row].ChildsExist && childCategories[indexPath.row].ChildCategories.count > 1){
-            performSegue(withIdentifier: "segueToSubCategories2", sender: self)
+            let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
+            let loadVC = storyBoard.instantiateViewController(withIdentifier: "SubCategory") as! SubCategoriesViewController
+            loadVC.childCategories = childCategories[indexPath.row].ChildCategories
+            self.navigationController?.pushViewController(loadVC, animated: true)
         }
         else {
             performSegue(withIdentifier: "segueToItemList", sender: self)
