@@ -35,7 +35,9 @@ class ItemViewController: UIViewController{
                 if let safeData = data {
                     if let item = self.parseJSON(safeData) {
                         self.item = item
-                        activityIndicator.stopAnimating()
+                        DispatchQueue.main.async {
+                            activityIndicator.stopAnimating()
+                        }
                     }
                 }
             }

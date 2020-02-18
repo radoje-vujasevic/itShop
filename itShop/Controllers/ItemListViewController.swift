@@ -73,7 +73,6 @@ class ItemListViewController: UITableViewController{
                 }
             }
         }
-        
     }
     
     func loadItems() -> Result<[Item]>{
