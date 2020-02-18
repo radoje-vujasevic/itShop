@@ -7,14 +7,20 @@
 //
 
 import UIKit
+import Alamofire
 
 class ItemListViewController: UITableViewController{
     var categoryID: Int?
     var items: [Item] = []
+    var itemImages: [UIImage] = []
+    enum NetworkError: Error {
+        case url
+        case server
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        loadItems()
+        load()
     }
     
     //MARK: - Tableview Datasource Methods
@@ -24,6 +30,7 @@ class ItemListViewController: UITableViewController{
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "itemCell", for: indexPath)
+        cell.imageView?.image = itemImages[indexPath.row]
         cell.textLabel?.text = items[indexPath.row].Name
         return cell
     }
@@ -41,32 +48,95 @@ class ItemListViewController: UITableViewController{
     }
     
     //MARK: - Fetching from API
-    func loadItems(){
+    func load(){
         let activityIndicator = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.large)
         activityIndicator.center = view.center
         activityIndicator.startAnimating()
         view.addSubview(activityIndicator)
         
-        let apiURL = "https://digitalvision.rs/parametri.php?action=artikliPoKategorijiEng&id=\(categoryID!)"
-        
-        if let url = URL(string: apiURL) {
-            let session = URLSession(configuration: .default)
-            let task = session.dataTask(with: url) { (data, response, error) in
-                if error != nil {
-                    print("Error with API call")
-                }
-                if let safeData = data {
-                    if let items = self.parseJSON(safeData) {
-                        self.items = items
-                        DispatchQueue.main.async{
-                            activityIndicator.stopAnimating()
-                            self.tableView.reloadData()
-                        }
+        DispatchQueue.global(qos: .utility).async {
+            let result = self.loadItems()
+                .flatMap{self.loadItemImages($0)}
+            
+            DispatchQueue.main.async {
+                switch result {
+                case let .success(data):
+                    do{
+                        try self.itemImages = data.unwrap()
+                    } catch{
+                        print(error)
                     }
+                    self.tableView.reloadData()
+                    activityIndicator.stopAnimating()
+                case let .failure(error):
+                    print(error)
                 }
             }
-            task.resume()
         }
+        
+    }
+    
+    func loadItems() -> Result<[Item]>{
+        let apiURL = "https://digitalvision.rs/parametri.php?action=artikliPoKategorijiEng&id=\(categoryID!)"
+        
+        guard let url = URL(string: apiURL) else {
+            return .failure(NetworkError.url)
+        }
+        
+        var result: Result<[Item]>!
+        let semaphore = DispatchSemaphore(value: 0)
+        
+        URLSession.shared.dataTask(with: url) { (data, _, _) in
+            if let data = data {
+                if let items = self.parseJSON(data) {
+                    self.items = items
+                    result = .success(items)
+                } else{
+                    result = .failure(NetworkError.server)
+                }
+            }
+            semaphore.signal()
+        }.resume()
+        
+        _ = semaphore.wait(wallTimeout: .distantFuture)
+        
+        return result
+    }
+    
+    func loadItemImages(_ items: [Item]) -> Result<[UIImage]>{
+        var result:Result<[UIImage]>
+        var images:[UIImage] = []
+        let semaphore = DispatchSemaphore(value: 0)
+        
+        for (i, item) in items.enumerated() {
+            guard let url = URL(string: item.MainImage) else {
+                return .failure(NetworkError.url)
+            }
+            
+            Alamofire.request(url).response { response in
+                if let data = response.data {
+                    let image = UIImage(data: data)
+                    images.append(image!)
+                }
+                else {
+                    images.append(UIImage(systemName: "desktopcomputer")!)
+                }
+                
+                if (i==items.count-1){
+                    semaphore.signal()
+                }
+            }
+        }
+        
+        _ = semaphore.wait(wallTimeout: .distantFuture)
+        
+        if(images.count>0){
+            result = .success(images)
+        } else{
+            result = .failure(NetworkError.server)
+        }
+        
+        return result
     }
     
     func parseJSON(_ data: Data) -> Array<Item>?{

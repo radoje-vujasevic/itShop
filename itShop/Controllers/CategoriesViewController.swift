@@ -7,18 +7,20 @@
 //
 
 import UIKit
+import Alamofire
 
 class CategoriesViewController: UITableViewController {
     var categories:[Category] = []
+    var categoryImages: [UIImage] = []
     var start: Bool = true
+    enum NetworkError: Error {
+        case url
+        case server
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        if (start){
-            loadCategories()
-        }
-        
+        if (start) { asyncAll() }
     }
     
     //MARK: - Tableview Datasource Methods
@@ -28,21 +30,17 @@ class CategoriesViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "categoryCell", for: indexPath)
+        cell.imageView?.image = categoryImages[indexPath.row]
         cell.textLabel?.text = categories[indexPath.row].Name
         return cell
     }
     
     //MARK: - TableView Delegate Methods
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        // If there are children categories and there is more than one child category --> Push to navigation controller this ViewController as next view
-        if (categories[indexPath.row].ChildsExist && categories[indexPath.row].ChildCategories.count > 1){
-            let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
-            let loadVC = storyBoard.instantiateViewController(withIdentifier: "CategoryList") as! CategoriesViewController
-            loadVC.categories = categories[indexPath.row].ChildCategories
-            loadVC.start = false
-            self.navigationController?.pushViewController(loadVC, animated: true)
-        }
-        else {
+        let clickedCategory = categories[indexPath.row]
+        if (clickedCategory.ChildsExist && clickedCategory.ChildCategories.count > 1){
+            asyncAnotherCategory(clickedCategory)
+        } else {
             performSegue(withIdentifier: "segueToItemsList", sender: self)
         }
     }
@@ -62,32 +60,116 @@ class CategoriesViewController: UITableViewController {
     }
     
     //MARK: - Fetching from API
-    func loadCategories(){
+    func asyncAll(){
+        let activityIndicator = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.large)
+        activityIndicator.center = view.center
+        view.addSubview(activityIndicator)
+        activityIndicator.startAnimating()
+        
+        DispatchQueue.global(qos: .utility).async {
+            let result = self.loadCategories()
+                .flatMap{self.loadCategoryImages($0)}
+            
+            DispatchQueue.main.async {
+                switch result {
+                case let .success(data):
+                    do{
+                        try self.categoryImages = data.unwrap()
+                    } catch{
+                        print(error)
+                    }
+                    self.tableView.reloadData()
+                    activityIndicator.stopAnimating()
+                case let .failure(error):
+                    print(error)
+                }
+            }
+        }
+    }
+    
+    func asyncAnotherCategory(_ clickedCategory:Category){
         let activityIndicator = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.large)
         activityIndicator.center = view.center
         activityIndicator.startAnimating()
         view.addSubview(activityIndicator)
         
-        let apiURL = "http://digitalvision.rs:8080/articleCategories/?showAll=true"
-        
-        if let url = URL(string: apiURL) {
-            let session = URLSession(configuration: .default)
-            let task = session.dataTask(with: url) { (data, response, error) in
-                if error != nil {
-                    print("Error with API call")
+        let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
+        let loadVC = storyBoard.instantiateViewController(withIdentifier: "CategoryList") as! CategoriesViewController
+        loadVC.categories = clickedCategory.ChildCategories
+        loadVC.start = false
+
+        DispatchQueue.global(qos: .utility).async {
+            let result = self.loadCategoryImages(clickedCategory.ChildCategories)
+            
+            DispatchQueue.main.async {
+                switch result {
+                case let .success(data):
+                    loadVC.categoryImages = data
+                case let .failure(error):
+                    print(error)
                 }
-                if let safeData = data {
-                    if let categories = self.parseJSON(safeData) {
-                        self.categories = categories
-                        DispatchQueue.main.async{
-                            activityIndicator.stopAnimating()
-                            self.tableView.reloadData()
-                        }
-                    }
+                activityIndicator.stopAnimating()
+                self.navigationController?.pushViewController(loadVC, animated: true)
+            }
+        }
+    }
+    
+    func loadCategories() -> Result<[Category]>{
+        let apiURL = "http://digitalvision.rs:8080/articleCategories/?showAll=true"
+        guard let url = URL(string: apiURL) else {
+            return .failure(NetworkError.url)
+        }
+        var result: Result<[Category]>!
+        let semaphore = DispatchSemaphore(value: 0)
+        
+        URLSession.shared.dataTask(with: url) { (data, _, _) in
+            if let data = data {
+                if let categories = self.parseJSON(data){
+                    self.categories = categories
+                    result = .success(categories)
+                }
+            } else {
+                result = .failure(NetworkError.server)
+            }
+            semaphore.signal()
+        }.resume()
+        
+        _ = semaphore.wait(wallTimeout: .distantFuture)
+        
+        return result
+    }
+    
+    func loadCategoryImages(_ categories: [Category]) -> Result<[UIImage]>{
+        var result:Result<[UIImage]>
+        var images:[UIImage] = []
+        let semaphore = DispatchSemaphore(value: 0)
+        
+        for (i, category) in categories.enumerated() {
+            guard let url = URL(string: category.ImageUrl) else {
+                return .failure(NetworkError.url)
+            }
+            
+            Alamofire.request(url).response { response in
+                if let data = response.data {
+                    let image = UIImage(data: data)
+                    images.append(image!)
+                }
+                else { images.append(UIImage(systemName: "desktopcomputer")!) }
+                if (i==categories.count-1){
+                    semaphore.signal()
                 }
             }
-            task.resume()
         }
+        
+        _ = semaphore.wait(wallTimeout: .distantFuture)
+        
+        if(images.count>0){
+            result = .success(images)
+        } else{
+            result = .failure(NetworkError.server)
+        }
+        
+        return result
     }
     
     func parseJSON(_ data: Data) -> Array<Category>?{

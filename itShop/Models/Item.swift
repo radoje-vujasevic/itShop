@@ -11,7 +11,7 @@ import Foundation
 struct Item: Codable {
     let Id: Int
     let Name: String
-    let MainImage: URL
+    let MainImage: String
     let Description: String
     let Price: Int
     let ImageUrls: Array<URL>?

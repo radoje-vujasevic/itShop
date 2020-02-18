@@ -19,6 +19,11 @@ class ItemViewController: UIViewController{
     
     //MARK: - Fetching from API
     func loadItems(){
+        let activityIndicator = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.large)
+        activityIndicator.center = view.center
+        activityIndicator.startAnimating()
+        view.addSubview(activityIndicator)
+
         let apiURL = "https://digitalvision.rs/parametri.php?action=artikaleng&id=\(itemID!)"
         
         if let url = URL(string: apiURL) {
@@ -30,6 +35,7 @@ class ItemViewController: UIViewController{
                 if let safeData = data {
                     if let item = self.parseJSON(safeData) {
                         self.item = item
+                        activityIndicator.stopAnimating()
                     }
                 }
             }
