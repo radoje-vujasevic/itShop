@@ -11,7 +11,7 @@ import Alamofire
 
 class CategoriesViewController: UITableViewController {
     var categories:[Category] = []
-    var categoryImages: [UIImage] = []
+    var categoryImages: [UIImage?] = []
     var start: Bool = true
     enum NetworkError: Error {
         case url
@@ -143,21 +143,23 @@ class CategoriesViewController: UITableViewController {
         var result:Result<[UIImage]>
         var images:[UIImage] = []
         let semaphore = DispatchSemaphore(value: 0)
+        var counter = 0
         
-        for (i, category) in categories.enumerated() {
+        for category in categories {
             guard let url = URL(string: category.ImageUrl) else {
                 return .failure(NetworkError.url)
             }
             
             Alamofire.request(url).response { response in
                 if let data = response.data {
-                    let image = UIImage(data: data)
-                    images.append(image!)
+                    images.append(UIImage(data: data)!)
                 }
-                else { images.append(UIImage(systemName: "desktopcomputer")!) }
-                if (i==categories.count-1){
+                
+                if (counter==categories.count-1){
                     semaphore.signal()
                 }
+                
+                counter+=1
             }
         }
         

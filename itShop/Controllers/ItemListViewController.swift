@@ -20,6 +20,10 @@ class ItemListViewController: UITableViewController{
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        let tableCell = UINib(nibName: "ItemListViewCell", bundle: nil)
+        tableView.register(tableCell, forCellReuseIdentifier: "ItemListViewCellID")
+        
         load()
     }
     
@@ -29,9 +33,10 @@ class ItemListViewController: UITableViewController{
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "itemCell", for: indexPath)
-        cell.imageView?.image = itemImages[indexPath.row]
-        cell.textLabel?.text = items[indexPath.row].Name
+        let cell = tableView.dequeueReusableCell(withIdentifier: "ItemListViewCellID", for: indexPath) as! ItemListViewCell
+        cell.cellImage.image = itemImages[indexPath.row]
+        cell.nameLabel.text = items[indexPath.row].Name
+        cell.priceLabel.text = "Cena: \(items[indexPath.row].Price)€"
         return cell
     }
     
@@ -44,6 +49,7 @@ class ItemListViewController: UITableViewController{
         if let indexPath = tableView.indexPathForSelectedRow {
             let destinationVC = segue.destination as! ItemViewController
             destinationVC.itemID = items[indexPath.row].Id
+            destinationVC.item = items[indexPath.row]
         }
     }
     
@@ -106,24 +112,23 @@ class ItemListViewController: UITableViewController{
         var result:Result<[UIImage]>
         var images:[UIImage] = []
         let semaphore = DispatchSemaphore(value: 0)
+        var counter = 0
         
-        for (i, item) in items.enumerated() {
+        for item in items {
             guard let url = URL(string: item.MainImage) else {
                 return .failure(NetworkError.url)
             }
             
-            Alamofire.request(url).response { response in
+            Alamofire.request(url).response { response in                
                 if let data = response.data {
-                    let image = UIImage(data: data)
-                    images.append(image!)
-                }
-                else {
-                    images.append(UIImage(systemName: "desktopcomputer")!)
+                    images.append(UIImage(data: data)!)
                 }
                 
-                if (i==items.count-1){
+                if (counter==items.count-1){
                     semaphore.signal()
                 }
+                
+                counter+=1
             }
         }
         
