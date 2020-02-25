@@ -7,7 +7,7 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
-        <!--Categories-->
+        <!--Categories View Controller-->
         <scene sceneID="gd8-XJ-jCJ">
             <objects>
                 <tableViewController storyboardIdentifier="CategoryList" useStoryboardIdentifierAsRestorationIdentifier="YES" id="6kb-zr-d6k" customClass="CategoriesViewController" customModule="itShop" customModuleProvider="target" sceneMemberID="viewController">
@@ -31,7 +31,7 @@
                             <outlet property="delegate" destination="6kb-zr-d6k" id="03f-Yu-Ae5"/>
                         </connections>
                     </tableView>
-                    <navigationItem key="navigationItem" title="Categories" id="c4v-sb-RyW"/>
+                    <navigationItem key="navigationItem" id="c4v-sb-RyW"/>
                     <connections>
                         <outlet property="view" destination="FH1-gd-vBr" id="pdD-OQ-hP7"/>
                         <segue destination="KEk-Nw-tYQ" kind="show" identifier="segueToItemsList" id="yam-A1-407"/>
@@ -59,7 +59,7 @@
             </objects>
             <point key="canvasLocation" x="-646" y="-394"/>
         </scene>
-        <!--Items-->
+        <!--Item List View Controller-->
         <scene sceneID="cwM-PC-KJG">
             <objects>
                 <tableViewController id="KEk-Nw-tYQ" customClass="ItemListViewController" customModule="itShop" customModuleProvider="target" sceneMemberID="viewController">
@@ -82,7 +82,7 @@
                             <outlet property="delegate" destination="KEk-Nw-tYQ" id="PRM-rS-HFm"/>
                         </connections>
                     </tableView>
-                    <navigationItem key="navigationItem" title="Items" id="6uM-bV-8t3"/>
+                    <navigationItem key="navigationItem" id="6uM-bV-8t3"/>
                     <connections>
                         <segue destination="9o7-Oh-1d9" kind="show" identifier="segueToItem" id="cgf-DE-NTk"/>
                     </connections>

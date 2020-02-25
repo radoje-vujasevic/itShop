@@ -10,7 +10,7 @@ import UIKit
 import Alamofire
 
 class CategoriesViewController: UITableViewController {
-    var categories:[Category] = []
+    var categories:[Category2] = []
     var categoryImages: [UIImage?] = []
     var start: Bool = true
     enum NetworkError: Error {
@@ -45,7 +45,7 @@ class CategoriesViewController: UITableViewController {
         }
     }
     
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) { // na itemlistvc programski
         if let indexPath = tableView.indexPathForSelectedRow {
             if let destinationVC = segue.destination as? ItemListViewController{
                 let clickedCategory = categories[indexPath.row]
@@ -67,7 +67,7 @@ class CategoriesViewController: UITableViewController {
         activityIndicator.startAnimating()
         
         DispatchQueue.global(qos: .utility).async {
-            let result = self.loadCategories()
+            let result = self.loadCategories() // bez flatMapa;
                 .flatMap{self.loadCategoryImages($0)}
             
             DispatchQueue.main.async {
@@ -96,7 +96,7 @@ class CategoriesViewController: UITableViewController {
         let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
         let loadVC = storyBoard.instantiateViewController(withIdentifier: "CategoryList") as! CategoriesViewController
         loadVC.categories = clickedCategory.ChildCategories
-        loadVC.start = false
+        loadVC.start = false //custom constructor sa private vrednostima
 
         DispatchQueue.global(qos: .utility).async {
             let result = self.loadCategoryImages(clickedCategory.ChildCategories)
@@ -114,6 +114,23 @@ class CategoriesViewController: UITableViewController {
         }
     }
     
+//    func fetchImage() -> ([Images]?, Error?) {
+//        DispatchQueue.global(qos: .utility).async {
+//            let result = self.loadCategoryImages(clickedCategory.ChildCategories)
+//
+//            DispatchQueue.main.async {
+//                switch result {
+//                case let .success(data):
+//                    return (data, nik)
+//                case let .failure(error):
+//                    print(error)
+//                }
+//                activityIndicator.stopAnimating()
+//                self.navigationController?.pushViewController(loadVC, animated: true)
+//            }
+//        }
+//    }
+    
     func loadCategories() -> Result<[Category]>{
         let apiURL = "http://digitalvision.rs:8080/articleCategories/?showAll=true"
         guard let url = URL(string: apiURL) else {
@@ -125,7 +142,7 @@ class CategoriesViewController: UITableViewController {
         URLSession.shared.dataTask(with: url) { (data, _, _) in
             if let data = data {
                 if let categories = self.parseJSON(data){
-                    self.categories = categories
+                    self.categories = categories.map({ Category2.init(a: $0) })
                     result = .success(categories)
                 }
             } else {
