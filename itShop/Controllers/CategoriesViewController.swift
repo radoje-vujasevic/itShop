@@ -10,7 +10,7 @@ import UIKit
 import Alamofire
 
 class CategoriesViewController: UITableViewController {
-    var categories:[Category2] = []
+    var categories:[Category] = []
     var categoryImages: [UIImage?] = []
     var start: Bool = true
     enum NetworkError: Error {
@@ -142,7 +142,7 @@ class CategoriesViewController: UITableViewController {
         URLSession.shared.dataTask(with: url) { (data, _, _) in
             if let data = data {
                 if let categories = self.parseJSON(data){
-                    self.categories = categories.map({ Category2.init(a: $0) })
+                    self.categories = categories
                     result = .success(categories)
                 }
             } else {
