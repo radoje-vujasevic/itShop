@@ -7,12 +7,11 @@
 //
 
 import UIKit
-import Alamofire
+import Kingfisher
 
 class ItemViewController: UIViewController, UIScrollViewDelegate{
     var itemID: Int?
     var item: Item?
-    var itemImages:[UIImageView] = []
     enum NetworkError: Error {
         case url
         case server
@@ -22,6 +21,7 @@ class ItemViewController: UIViewController, UIScrollViewDelegate{
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var nameLabel: UILabel!
     @IBOutlet weak var priceLabel: UILabel!
+    @IBOutlet weak var descriptionTextView: UITextView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -44,35 +44,30 @@ class ItemViewController: UIViewController, UIScrollViewDelegate{
             DispatchQueue.main.async {
                 switch result {
                 case let .success(data):
-                    do{
-                        try self.itemImages = data.unwrap()
-                    } catch{
-                        print(error)
-                    }
-                    activityIndicator.stopAnimating()
+                    self.item = data
+                    self.buildUI()
                 case let .failure(error):
                     print(error)
                 }
-                
-                self.buildUI()
+
+                activityIndicator.stopAnimating()
             }
         }
     }
     
-    func loadItem() -> Result<Item>{
-        var result: Result<Item>!
+    func loadItem() -> Result<ItemCodable, Error>{
+        var result: Result<ItemCodable, Error>!
         let semaphore = DispatchSemaphore(value: 0)
-        let apiURL = "https://digitalvision.rs/parametri.php?action=artikaleng&id=\(itemID!)"
         
+        let apiURL = "https://digitalvision.rs/parametri.php?action=artikaleng&id=\(itemID!)"
         guard let url = URL(string: apiURL) else {
             return .failure(NetworkError.url)
         }
         
         URLSession.shared.dataTask(with: url) { (data, _, _) in
             if let data = data {
-                if let item = self.parseJSON(data) {
-                    self.item = item
-                    result = .success(item)
+                if let itemCodable = self.parseJSON(data) {
+                    result = .success(itemCodable)
                 } else{
                     result = .failure(NetworkError.server)
                 }
@@ -85,10 +80,10 @@ class ItemViewController: UIViewController, UIScrollViewDelegate{
         return result
     }
     
-    func parseJSON(_ data: Data) -> Item?{
+    func parseJSON(_ data: Data) -> ItemCodable?{
         let decoder = JSONDecoder()
         do {
-            let decodedData = try decoder.decode(Item.self, from: data)
+            let decodedData = try decoder.decode(ItemCodable.self, from: data)
             return decodedData
             
         } catch {
@@ -97,49 +92,57 @@ class ItemViewController: UIViewController, UIScrollViewDelegate{
         }
     }
     
-    func loadItemImages(_ item: Item) -> Result<[UIImageView]>{
-        var result:Result<[UIImageView]>
-        var images:[UIImageView] = []
+    func loadItemImages(_ itemCodable: ItemCodable) -> Result<Item, Error>{
+        var result:Result<Item, Error>
+        var images:[UIImage] = []
         let semaphore = DispatchSemaphore(value: 0)
-        var counter = 0
-        
-        for pictureURL in item.ImageUrls! {
-            Alamofire.request(pictureURL).response { response in
-                if let data = response.data {
-                    images.append(UIImageView(image: UIImage(data: data)))
+
+        for imageURL in itemCodable.ImageUrls! {
+            KingfisherManager.shared.retrieveImage(with: imageURL) { result in
+                let image: UIImage
+                do{
+                    image = try result.get().image
+                } catch{
+                    image = UIImage(systemName: "desktopcomputer")!
+                    print("error fetching image")
                 }
                 
-                if (counter==item.ImageUrls!.count-1){
+                images.append(image)
+                
+                if (images.count == itemCodable.ImageUrls!.count){
                     semaphore.signal()
                 }
-                
-                counter+=1
             }
         }
-        
         _ = semaphore.wait(wallTimeout: .distantFuture)
         
-        if(images.count>0){
-            result = .success(images)
-        } else{
-            result = .failure(NetworkError.server)
-        }
-        
+        let item = Item(item: itemCodable, images: images)
+        result = .success(item)
         return result
     }
     
     func buildUI(){
-        nameLabel.text = item!.Name
-        priceLabel.text = String(item!.Price) + "€"
-        scrollView.isPagingEnabled = true
-        scrollView.contentSize = CGSize(width: 300 * CGFloat(itemImages.count), height: 300)
-        pageControl.numberOfPages = item!.ImageUrls!.count
-        pageControl.currentPage = 0
+        nameLabel.text = item!.name
+        priceLabel.text = String(item!.price) + "€"
         
-        for (i, imageView) in itemImages.enumerated(){
+        scrollView.isPagingEnabled = true
+        scrollView.contentSize = CGSize(width: 300 * CGFloat(item!.images!.count), height: 300)
+        for (i, image) in item!.images!.enumerated(){
+            let imageView = UIImageView(image: image)
             imageView.frame = CGRect(x: 300 * CGFloat(i), y: 0, width: 300, height: 300)
             scrollView.addSubview(imageView)
         }
+        
+        pageControl.numberOfPages = item!.images!.count
+        pageControl.currentPage = 0
+                
+        let htmlData = NSString(string: item!.description).data(using: String.Encoding.utf8.rawValue)
+        let options = [NSAttributedString.DocumentReadingOptionKey.documentType: NSAttributedString.DocumentType.html]
+        let attributedString = try! NSAttributedString(data: htmlData!,
+                                                       options: options,
+                                                       documentAttributes: nil)
+        descriptionTextView.attributedText = attributedString
+        descriptionTextView.isEditable = false
     }
     
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
@@ -148,7 +151,7 @@ class ItemViewController: UIViewController, UIScrollViewDelegate{
     }
     
     @IBAction func addToCart(_ sender: Any) {
-        let alert = UIAlertController(title: "Added to cart 🛒", message: item!.Name, preferredStyle: .alert)
+        let alert = UIAlertController(title: "Added to cart 🛒", message: item!.name, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         self.present(alert, animated: true)
     }

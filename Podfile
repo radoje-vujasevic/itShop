@@ -5,6 +5,6 @@ target 'itShop' do
   use_frameworks!
   
 pod "Alamofire"
-pod 'SDWebImage'
+pod 'Kingfisher'
 
 end

@@ -147,10 +147,10 @@
                                         <rect key="frame" x="20" y="438" width="342" height="316"/>
                                         <subviews>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="cxv-ME-Tky">
-                                                <rect key="frame" x="0.0" y="0.0" width="342" height="174"/>
+                                                <rect key="frame" x="0.0" y="0.0" width="342" height="50"/>
                                                 <subviews>
                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Eps-B6-olT">
-                                                        <rect key="frame" x="0.0" y="0.0" width="342" height="174"/>
+                                                        <rect key="frame" x="0.0" y="0.0" width="342" height="50"/>
                                                         <fontDescription key="fontDescription" type="system" pointSize="22"/>
                                                         <color key="textColor" red="0.0" green="0.47843137250000001" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                                         <nil key="highlightedColor"/>
@@ -165,7 +165,7 @@
                                                 </constraints>
                                             </view>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="A0X-0i-9Bk">
-                                                <rect key="frame" x="0.0" y="190" width="342" height="50"/>
+                                                <rect key="frame" x="0.0" y="66" width="342" height="50"/>
                                                 <subviews>
                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ed5-r5-OxJ">
                                                         <rect key="frame" x="0.0" y="0.0" width="342" height="50"/>
@@ -183,6 +183,25 @@
                                                     <constraint firstItem="ed5-r5-OxJ" firstAttribute="leading" secondItem="A0X-0i-9Bk" secondAttribute="leading" id="7H9-9w-NQd"/>
                                                     <constraint firstItem="ed5-r5-OxJ" firstAttribute="top" secondItem="A0X-0i-9Bk" secondAttribute="top" id="S1Z-hF-G0P"/>
                                                     <constraint firstAttribute="trailing" secondItem="ed5-r5-OxJ" secondAttribute="trailing" id="Ux4-Lp-Mlh"/>
+                                                </constraints>
+                                            </view>
+                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="d8u-Wk-FQO">
+                                                <rect key="frame" x="0.0" y="132" width="342" height="108"/>
+                                                <subviews>
+                                                    <textView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" textAlignment="natural" translatesAutoresizingMaskIntoConstraints="NO" id="HlR-EW-dHH">
+                                                        <rect key="frame" x="20" y="20" width="302" height="68"/>
+                                                        <color key="backgroundColor" systemColor="systemBackgroundColor" cocoaTouchSystemColor="whiteColor"/>
+                                                        <color key="textColor" systemColor="labelColor" cocoaTouchSystemColor="darkTextColor"/>
+                                                        <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                                        <textInputTraits key="textInputTraits" autocapitalizationType="sentences"/>
+                                                    </textView>
+                                                </subviews>
+                                                <color key="backgroundColor" systemColor="systemBackgroundColor" cocoaTouchSystemColor="whiteColor"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="bottom" secondItem="HlR-EW-dHH" secondAttribute="bottom" constant="20" symbolic="YES" id="9ca-fK-WzS"/>
+                                                    <constraint firstAttribute="trailing" secondItem="HlR-EW-dHH" secondAttribute="trailing" constant="20" symbolic="YES" id="J7G-6l-rAD"/>
+                                                    <constraint firstItem="HlR-EW-dHH" firstAttribute="top" secondItem="d8u-Wk-FQO" secondAttribute="top" constant="20" symbolic="YES" id="K0S-At-9o4"/>
+                                                    <constraint firstItem="HlR-EW-dHH" firstAttribute="leading" secondItem="d8u-Wk-FQO" secondAttribute="leading" constant="20" symbolic="YES" id="ziy-Ud-Cde"/>
                                                 </constraints>
                                             </view>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="v3Z-sa-oWh">
@@ -239,6 +258,7 @@
                     </view>
                     <navigationItem key="navigationItem" title="Item" id="guN-GJ-umP"/>
                     <connections>
+                        <outlet property="descriptionTextView" destination="HlR-EW-dHH" id="9e2-yv-5dI"/>
                         <outlet property="nameLabel" destination="Eps-B6-olT" id="6GA-g5-cKC"/>
                         <outlet property="pageControl" destination="dnX-AC-gWF" id="Sw2-7z-toS"/>
                         <outlet property="priceLabel" destination="ed5-r5-OxJ" id="YFw-P3-Fdt"/>
