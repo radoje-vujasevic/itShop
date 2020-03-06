@@ -7,12 +7,11 @@
 //
 
 import UIKit
-import Alamofire
+import Kingfisher
 
 class ItemListViewController: UITableViewController{
     var categoryID: Int?
     var items: [Item] = []
-    var itemImages: [UIImage] = []
     enum NetworkError: Error {
         case url
         case server
@@ -34,9 +33,9 @@ class ItemListViewController: UITableViewController{
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "ItemListViewCellID", for: indexPath) as! ItemListViewCell
-        cell.cellImage.image = itemImages[indexPath.row]
-        cell.nameLabel.text = items[indexPath.row].Name
-        cell.priceLabel.text = "Cena: \(items[indexPath.row].Price)€"
+        cell.cellImage.image = items[indexPath.row].mainImage
+        cell.nameLabel.text = items[indexPath.row].name
+        cell.priceLabel.text = "Cena: \(items[indexPath.row].price)€"
         return cell
     }
     
@@ -48,7 +47,7 @@ class ItemListViewController: UITableViewController{
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if let indexPath = tableView.indexPathForSelectedRow {
             let destinationVC = segue.destination as! ItemViewController
-            destinationVC.itemID = items[indexPath.row].Id
+            destinationVC.itemID = items[indexPath.row].id
             destinationVC.item = items[indexPath.row]
         }
     }
@@ -67,38 +66,31 @@ class ItemListViewController: UITableViewController{
             DispatchQueue.main.async {
                 switch result {
                 case let .success(data):
-                    do{
-                        try self.itemImages = data.unwrap()
-                    } catch{
-                        print(error)
-                    }
+                    self.items = data
                     self.tableView.reloadData()
-                    activityIndicator.stopAnimating()
                 case let .failure(error):
                     print(error)
                 }
+                activityIndicator.stopAnimating()
             }
         }
     }
     
-    func loadItems() -> Result<[Item]>{
+    func loadItems() -> Result<[ItemCodable], Error>{
         let apiURL = "https://digitalvision.rs/parametri.php?action=artikliPoKategorijiEng&id=\(categoryID!)"
-        
         guard let url = URL(string: apiURL) else {
             return .failure(NetworkError.url)
         }
-        
-        var result: Result<[Item]>!
+        var result: Result<[ItemCodable], Error>!
         let semaphore = DispatchSemaphore(value: 0)
         
         URLSession.shared.dataTask(with: url) { (data, _, _) in
             if let data = data {
                 if let items = self.parseJSON(data) {
-                    self.items = items
                     result = .success(items)
-                } else{
-                    result = .failure(NetworkError.server)
                 }
+            } else{
+                result = .failure(NetworkError.server)
             }
             semaphore.signal()
         }.resume()
@@ -108,46 +100,37 @@ class ItemListViewController: UITableViewController{
         return result
     }
     
-    func loadItemImages(_ items: [Item]) -> Result<[UIImage]>{
-        var result:Result<[UIImage]>
-        var images:[UIImage] = []
+    func loadItemImages(_ itemsCodable: [ItemCodable]) -> Result<[Item], Error>{
+        var result:Result<[Item], Error>
+        var items:[Item] = []
         let semaphore = DispatchSemaphore(value: 0)
-        var counter = 0
         
-        for item in items {
-            guard let url = URL(string: item.MainImage) else {
-                return .failure(NetworkError.url)
-            }
-            
-            Alamofire.request(url).response { response in                
-                if let data = response.data {
-                    images.append(UIImage(data: data)!)
+        for item in itemsCodable {
+            KingfisherManager.shared.retrieveImage(with: item.MainImage) { result in
+                do{
+                    let image = try result.get().image
+                    items.append(Item(item: item, image: image))
+                } catch{
+                    print("error fetching image")
+                    items.append(Item(item: item, image: UIImage(systemName: "desktopcomputer")!))
                 }
                 
-                if (counter==items.count-1){
+                if (items.count == itemsCodable.count){
                     semaphore.signal()
                 }
-                
-                counter+=1
             }
         }
-        
         _ = semaphore.wait(wallTimeout: .distantFuture)
         
-        if(images.count>0){
-            result = .success(images)
-        } else{
-            result = .failure(NetworkError.server)
-        }
-        
+        result = .success(items)
         return result
     }
     
-    func parseJSON(_ data: Data) -> Array<Item>?{
+    func parseJSON(_ data: Data) -> Array<ItemCodable>?{
         let decoder = JSONDecoder()
         do {
-            let decodedData = try decoder.decode(Array<Item>.self, from: data)
-            return decodedData
+            let itemCodable = try decoder.decode(Array<ItemCodable>.self, from: data)
+            return itemCodable
             
         } catch {
             print(error)

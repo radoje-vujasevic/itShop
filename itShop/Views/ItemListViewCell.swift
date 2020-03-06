@@ -7,6 +7,9 @@
 //
 
 import UIKit
+protocol passName:class {
+    func showMessage()
+}
 
 class ItemListViewCell: UITableViewCell {
     
@@ -14,6 +17,8 @@ class ItemListViewCell: UITableViewCell {
     @IBOutlet weak var priceLabel: UILabel!
     @IBOutlet weak var cellImage: UIImageView!
     
+    weak var delegate: passName?
+
     override func awakeFromNib() {
         super.awakeFromNib()
         // Initialization code
@@ -26,6 +31,6 @@ class ItemListViewCell: UITableViewCell {
     }
     
     @IBAction func addToCart(_ sender: Any) {
-        print("Added to cart")
+        delegate?.showMessage()
     }
 }

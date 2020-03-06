@@ -7,11 +7,10 @@
 //
 
 import UIKit
-import Alamofire
+import Kingfisher
 
 class CategoriesViewController: UITableViewController {
     var categories:[Category] = []
-    var categoryImages: [UIImage?] = []
     var start: Bool = true
     enum NetworkError: Error {
         case url
@@ -30,18 +29,18 @@ class CategoriesViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "categoryCell", for: indexPath)
-        cell.imageView?.image = categoryImages[indexPath.row]
-        cell.textLabel?.text = categories[indexPath.row].Name
+        cell.imageView?.image = categories[indexPath.row].image
+        cell.textLabel?.text = categories[indexPath.row].name
         return cell
     }
     
     //MARK: - TableView Delegate Methods
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let clickedCategory = categories[indexPath.row]
-        if (clickedCategory.ChildsExist && clickedCategory.ChildCategories.count > 1){
+        if (clickedCategory.childsExist && clickedCategory.childCategories.count > 1){
             asyncAnotherCategory(clickedCategory)
         } else {
-            performSegue(withIdentifier: "segueToItemsList", sender: self)
+            performSegue(withIdentifier: "segueToItemsList", sender: self) //TODO: Programatically
         }
     }
     
@@ -49,11 +48,11 @@ class CategoriesViewController: UITableViewController {
         if let indexPath = tableView.indexPathForSelectedRow {
             if let destinationVC = segue.destination as? ItemListViewController{
                 let clickedCategory = categories[indexPath.row]
-                if(clickedCategory.ChildCategories.count == 1){
-                    destinationVC.categoryID = clickedCategory.ChildCategories[0].Id
+                if(clickedCategory.childCategories.count == 1){
+                    destinationVC.categoryID = clickedCategory.childCategories[0].Id
                 }
                 else{
-                    destinationVC.categoryID = clickedCategory.Id
+                    destinationVC.categoryID = clickedCategory.id
                 }
             }
         }
@@ -73,16 +72,12 @@ class CategoriesViewController: UITableViewController {
             DispatchQueue.main.async {
                 switch result {
                 case let .success(data):
-                    do{
-                        try self.categoryImages = data.unwrap()
-                    } catch{
-                        print(error)
-                    }
+                    self.categories = data
                     self.tableView.reloadData()
-                    activityIndicator.stopAnimating()
                 case let .failure(error):
                     print(error)
                 }
+                activityIndicator.stopAnimating()
             }
         }
     }
@@ -93,18 +88,17 @@ class CategoriesViewController: UITableViewController {
         activityIndicator.startAnimating()
         view.addSubview(activityIndicator)
         
-        let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
+        let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil) //TODO: Move to didSelectRowAt
         let loadVC = storyBoard.instantiateViewController(withIdentifier: "CategoryList") as! CategoriesViewController
-        loadVC.categories = clickedCategory.ChildCategories
-        loadVC.start = false
-
+        
         DispatchQueue.global(qos: .utility).async {
-            let result = self.loadCategoryImages(clickedCategory.ChildCategories)
+            let result = self.loadCategoryImages(clickedCategory.childCategories)
             
             DispatchQueue.main.async {
                 switch result {
                 case let .success(data):
-                    loadVC.categoryImages = data
+                    loadVC.categories = data
+                    loadVC.start = false //TODO: Private value constructor
                 case let .failure(error):
                     print(error)
                 }
@@ -114,18 +108,17 @@ class CategoriesViewController: UITableViewController {
         }
     }
     
-    func loadCategories() -> Result<[Category]>{
+    func loadCategories() -> Result<[CategoryCodable], Error>{
         let apiURL = "http://digitalvision.rs:8080/articleCategories/?showAll=true"
         guard let url = URL(string: apiURL) else {
             return .failure(NetworkError.url)
         }
-        var result: Result<[Category]>!
+        var result: Result<[CategoryCodable], Error>!
         let semaphore = DispatchSemaphore(value: 0)
         
         URLSession.shared.dataTask(with: url) { (data, _, _) in
             if let data = data {
                 if let categories = self.parseJSON(data){
-                    self.categories = categories
                     result = .success(categories)
                 }
             } else {
@@ -139,51 +132,40 @@ class CategoriesViewController: UITableViewController {
         return result
     }
     
-    func loadCategoryImages(_ categories: [Category]) -> Result<[UIImage]>{
-        var result:Result<[UIImage]>
-        var images:[UIImage] = []
+    func loadCategoryImages(_ categoriesCodable: [CategoryCodable]) -> Result<[Category], Error>{
+        var result: Result<[Category], Error>
+        var categories:[Category] = []
         let semaphore = DispatchSemaphore(value: 0)
-        var counter = 0
         
-        for category in categories {
-            guard let url = URL(string: category.ImageUrl) else {
-                return .failure(NetworkError.url)
-            }
-            
-            Alamofire.request(url).response { response in
-                if let data = response.data {
-                    images.append(UIImage(data: data)!)
+        for category in categoriesCodable {
+            KingfisherManager.shared.retrieveImage(with: category.ImageUrl) { result in
+                do{
+                    let image = try result.get().image
+                    categories.append(Category(category: category, image: image))
+                } catch{
+                    print("error fetching image")
+                    categories.append(Category(category: category, image: UIImage(systemName: "desktopcomputer")!))
                 }
                 
-                if (counter==categories.count-1){
+                if (categories.count == categoriesCodable.count){
                     semaphore.signal()
                 }
-                
-                counter+=1
             }
         }
-        
         _ = semaphore.wait(wallTimeout: .distantFuture)
         
-        if(images.count>0){
-            result = .success(images)
-        } else{
-            result = .failure(NetworkError.server)
-        }
-        
+        result = .success(categories)
         return result
     }
     
-    func parseJSON(_ data: Data) -> Array<Category>?{
+    func parseJSON(_ data: Data) -> Array<CategoryCodable>?{
         let decoder = JSONDecoder()
         do {
-            let decodedData = try decoder.decode(Array<Category>.self, from: data)
-            return decodedData
-            
+            let categoriesCodable = try decoder.decode(Array<CategoryCodable>.self, from: data)
+            return categoriesCodable
         } catch {
             print(error)
             return nil
         }
     }
 }
-
