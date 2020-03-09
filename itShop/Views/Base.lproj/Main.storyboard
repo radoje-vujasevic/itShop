@@ -62,7 +62,7 @@
         <!--Item List View Controller-->
         <scene sceneID="cwM-PC-KJG">
             <objects>
-                <tableViewController id="KEk-Nw-tYQ" customClass="ItemListViewController" customModule="itShop" customModuleProvider="target" sceneMemberID="viewController">
+                <tableViewController storyboardIdentifier="ItemList" useStoryboardIdentifierAsRestorationIdentifier="YES" id="KEk-Nw-tYQ" customClass="ItemListViewController" customModule="itShop" customModuleProvider="target" sceneMemberID="viewController">
                     <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="none" rowHeight="150" sectionHeaderHeight="28" sectionFooterHeight="28" id="Iwg-MH-yuU">
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>

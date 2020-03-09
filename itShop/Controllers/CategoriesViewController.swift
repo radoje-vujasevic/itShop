@@ -10,16 +10,23 @@ import UIKit
 import Kingfisher
 
 class CategoriesViewController: UITableViewController {
-    var categories:[Category] = []
     var start: Bool = true
-    enum NetworkError: Error {
-        case url
-        case server
-    }
-    
+    var categories:[Category] = []
+    let activityIndicator = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.large)
+    let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        if (start) { asyncAll() }
+        activityIndicator.center = view.center
+        view.addSubview(activityIndicator)
+
+        if (start) {
+            activityIndicator.startAnimating()
+            
+            DispatchQueue.global(qos: .utility).async {
+                self.loadCategories()
+            }
+        }
     }
     
     //MARK: - Tableview Datasource Methods
@@ -38,104 +45,37 @@ class CategoriesViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let clickedCategory = categories[indexPath.row]
         if (clickedCategory.childsExist && clickedCategory.childCategories.count > 1){
-            asyncAnotherCategory(clickedCategory)
+            activityIndicator.startAnimating()
+            DispatchQueue.global(qos: .utility).async {
+                self.loadCategoryImages(clickedCategory.childCategories, self.anotherCategoryView)
+            }
         } else {
-            performSegue(withIdentifier: "segueToItemsList", sender: self) //TODO: Programatically
+            let loadVC = storyBoard.instantiateViewController(withIdentifier: "ItemList") as! ItemListViewController
+            loadVC.categoryID = clickedCategory.childCategories.count == 1 ? clickedCategory.childCategories[0].Id : clickedCategory.id
+            self.navigationController?.pushViewController(loadVC, animated: true)
         }
     }
-    
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if let indexPath = tableView.indexPathForSelectedRow {
-            if let destinationVC = segue.destination as? ItemListViewController{
-                let clickedCategory = categories[indexPath.row]
-                if(clickedCategory.childCategories.count == 1){
-                    destinationVC.categoryID = clickedCategory.childCategories[0].Id
-                }
-                else{
-                    destinationVC.categoryID = clickedCategory.id
-                }
-            }
-        }
-    }
-    
+
     //MARK: - Fetching from API
-    func asyncAll(){
-        let activityIndicator = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.large)
-        activityIndicator.center = view.center
-        view.addSubview(activityIndicator)
-        activityIndicator.startAnimating()
-        
-        DispatchQueue.global(qos: .utility).async {
-            let result = self.loadCategories()
-                .flatMap{self.loadCategoryImages($0)}
-            
-            DispatchQueue.main.async {
-                switch result {
-                case let .success(data):
-                    self.categories = data
-                    self.tableView.reloadData()
-                case let .failure(error):
-                    print(error)
-                }
-                activityIndicator.stopAnimating()
-            }
-        }
-    }
-    
-    func asyncAnotherCategory(_ clickedCategory:Category){
-        let activityIndicator = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.large)
-        activityIndicator.center = view.center
-        activityIndicator.startAnimating()
-        view.addSubview(activityIndicator)
-        
-        let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil) //TODO: Move to didSelectRowAt
-        let loadVC = storyBoard.instantiateViewController(withIdentifier: "CategoryList") as! CategoriesViewController
-        
-        DispatchQueue.global(qos: .utility).async {
-            let result = self.loadCategoryImages(clickedCategory.childCategories)
-            
-            DispatchQueue.main.async {
-                switch result {
-                case let .success(data):
-                    loadVC.categories = data
-                    loadVC.start = false //TODO: Private value constructor
-                case let .failure(error):
-                    print(error)
-                }
-                activityIndicator.stopAnimating()
-                self.navigationController?.pushViewController(loadVC, animated: true)
-            }
-        }
-    }
-    
-    func loadCategories() -> Result<[CategoryCodable], Error>{
-        let apiURL = "http://digitalvision.rs:8080/articleCategories/?showAll=true"
-        guard let url = URL(string: apiURL) else {
-            return .failure(NetworkError.url)
-        }
-        var result: Result<[CategoryCodable], Error>!
-        let semaphore = DispatchSemaphore(value: 0)
-        
+    func loadCategories(){
+        let url = URL(string: "http://digitalvision.rs:8080/articleCategories/?showAll=true")!
         URLSession.shared.dataTask(with: url) { (data, _, _) in
             if let data = data {
-                if let categories = self.parseJSON(data){
-                    result = .success(categories)
+                do {
+                    let decoder = JSONDecoder()
+                    let categoriesCodable = try decoder.decode(Array<CategoryCodable>.self, from: data)
+                    self.loadCategoryImages(categoriesCodable, self.buildUI)
+                } catch {
+                    print("error parsing categories")
                 }
             } else {
-                result = .failure(NetworkError.server)
+                print("error fetching categories")
             }
-            semaphore.signal()
         }.resume()
-        
-        _ = semaphore.wait(wallTimeout: .distantFuture)
-        
-        return result
     }
     
-    func loadCategoryImages(_ categoriesCodable: [CategoryCodable]) -> Result<[Category], Error>{
-        var result: Result<[Category], Error>
+    func loadCategoryImages(_ categoriesCodable: [CategoryCodable], _ callback: @escaping (([Category]) -> Void)){
         var categories:[Category] = []
-        let semaphore = DispatchSemaphore(value: 0)
         
         for category in categoriesCodable {
             KingfisherManager.shared.retrieveImage(with: category.ImageUrl) { result in
@@ -148,24 +88,28 @@ class CategoriesViewController: UITableViewController {
                 }
                 
                 if (categories.count == categoriesCodable.count){
-                    semaphore.signal()
+                    callback(categories)
                 }
             }
         }
-        _ = semaphore.wait(wallTimeout: .distantFuture)
-        
-        result = .success(categories)
-        return result
     }
     
-    func parseJSON(_ data: Data) -> Array<CategoryCodable>?{
-        let decoder = JSONDecoder()
-        do {
-            let categoriesCodable = try decoder.decode(Array<CategoryCodable>.self, from: data)
-            return categoriesCodable
-        } catch {
-            print(error)
-            return nil
+    //MARK: - Callbacks
+    func buildUI(_ categories:[Category]) {
+        DispatchQueue.main.async {
+            self.categories = categories
+            self.tableView.reloadData()
+            self.activityIndicator.stopAnimating()
+        }
+    }
+    
+    func anotherCategoryView(_ categories: [Category]){
+        DispatchQueue.main.async {
+            let loadVC = self.storyBoard.instantiateViewController(withIdentifier: "CategoryList") as! CategoriesViewController
+            loadVC.categories = categories
+            loadVC.start = false //TODO: Private value constructor
+            self.activityIndicator.stopAnimating()
+            self.navigationController?.pushViewController(loadVC, animated: true)
         }
     }
 }

@@ -12,10 +12,7 @@ import Kingfisher
 class ItemViewController: UIViewController, UIScrollViewDelegate{
     var itemID: Int?
     var item: Item?
-    enum NetworkError: Error {
-        case url
-        case server
-    }
+    let activityIndicator = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.large)
     
     @IBOutlet weak var pageControl: UIPageControl!
     @IBOutlet weak var scrollView: UIScrollView!
@@ -26,99 +23,55 @@ class ItemViewController: UIViewController, UIScrollViewDelegate{
     override func viewDidLoad() {
         super.viewDidLoad()
         scrollView.delegate=self
-    
-        load()
-    }
-    
-    //MARK: - Fetching from API
-    func load(){
-        let activityIndicator = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.large)
+        
         activityIndicator.center = view.center
         activityIndicator.startAnimating()
         view.addSubview(activityIndicator)
         
         DispatchQueue.global(qos: .utility).async {
-            let result = self.loadItem()
-                .flatMap{self.loadItemImages($0)}
-            
-            DispatchQueue.main.async {
-                switch result {
-                case let .success(data):
-                    self.item = data
-                    self.buildUI()
-                case let .failure(error):
-                    print(error)
-                }
-
-                activityIndicator.stopAnimating()
-            }
+            self.loadItem()
         }
     }
     
-    func loadItem() -> Result<ItemCodable, Error>{
-        var result: Result<ItemCodable, Error>!
-        let semaphore = DispatchSemaphore(value: 0)
-        
-        let apiURL = "https://digitalvision.rs/parametri.php?action=artikaleng&id=\(itemID!)"
-        guard let url = URL(string: apiURL) else {
-            return .failure(NetworkError.url)
-        }
-        
+    //MARK: - Fetching from API
+    func loadItem(){
+        let url = URL(string: "https://digitalvision.rs/parametri.php?action=artikaleng&id=\(itemID!)")!
         URLSession.shared.dataTask(with: url) { (data, _, _) in
             if let data = data {
-                if let itemCodable = self.parseJSON(data) {
-                    result = .success(itemCodable)
-                } else{
-                    result = .failure(NetworkError.server)
+                do {
+                    let decoder = JSONDecoder()
+                    let itemCodable = try decoder.decode(ItemCodable.self, from: data)
+                    self.loadItemImages(itemCodable)
+                } catch {
+                    print("error parsing items")
                 }
+            }  else{
+                print("error fetching item")
             }
-            semaphore.signal()
         }.resume()
-        
-        _ = semaphore.wait(wallTimeout: .distantFuture)
-        
-        return result
     }
     
-    func parseJSON(_ data: Data) -> ItemCodable?{
-        let decoder = JSONDecoder()
-        do {
-            let decodedData = try decoder.decode(ItemCodable.self, from: data)
-            return decodedData
-            
-        } catch {
-            print(error)
-            return nil
-        }
-    }
-    
-    func loadItemImages(_ itemCodable: ItemCodable) -> Result<Item, Error>{
-        var result:Result<Item, Error>
+    func loadItemImages(_ itemCodable: ItemCodable){
         var images:[UIImage] = []
-        let semaphore = DispatchSemaphore(value: 0)
-
+        
         for imageURL in itemCodable.ImageUrls! {
             KingfisherManager.shared.retrieveImage(with: imageURL) { result in
                 let image: UIImage
                 do{
                     image = try result.get().image
                 } catch{
+                    print("error fetching item image")
                     image = UIImage(systemName: "desktopcomputer")!
-                    print("error fetching image")
                 }
                 
                 images.append(image)
                 
                 if (images.count == itemCodable.ImageUrls!.count){
-                    semaphore.signal()
+                    self.item = Item(item: itemCodable, images: images)
+                    self.buildUI()
                 }
             }
         }
-        _ = semaphore.wait(wallTimeout: .distantFuture)
-        
-        let item = Item(item: itemCodable, images: images)
-        result = .success(item)
-        return result
     }
     
     func buildUI(){
@@ -135,7 +88,7 @@ class ItemViewController: UIViewController, UIScrollViewDelegate{
         
         pageControl.numberOfPages = item!.images!.count
         pageControl.currentPage = 0
-                
+        
         let htmlData = NSString(string: item!.description).data(using: String.Encoding.utf8.rawValue)
         let options = [NSAttributedString.DocumentReadingOptionKey.documentType: NSAttributedString.DocumentType.html]
         let attributedString = try! NSAttributedString(data: htmlData!,
@@ -143,6 +96,8 @@ class ItemViewController: UIViewController, UIScrollViewDelegate{
                                                        documentAttributes: nil)
         descriptionTextView.attributedText = attributedString
         descriptionTextView.isEditable = false
+        
+        activityIndicator.stopAnimating()
     }
     
     func scrollViewDidScroll(_ scrollView: UIScrollView) {

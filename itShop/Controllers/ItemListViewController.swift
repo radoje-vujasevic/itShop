@@ -12,10 +12,7 @@ import Kingfisher
 class ItemListViewController: UITableViewController{
     var categoryID: Int?
     var items: [Item] = []
-    enum NetworkError: Error {
-        case url
-        case server
-    }
+    let activityIndicator = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.large)
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -23,7 +20,13 @@ class ItemListViewController: UITableViewController{
         let tableCell = UINib(nibName: "ItemListViewCell", bundle: nil)
         tableView.register(tableCell, forCellReuseIdentifier: "ItemListViewCellID")
         
-        load()
+        activityIndicator.center = view.center
+        activityIndicator.startAnimating()
+        view.addSubview(activityIndicator)
+
+        DispatchQueue.global(qos: .utility).async {
+            self.loadItems()
+        }
     }
     
     //MARK: - Tableview Datasource Methods
@@ -53,57 +56,25 @@ class ItemListViewController: UITableViewController{
     }
     
     //MARK: - Fetching from API
-    func load(){
-        let activityIndicator = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.large)
-        activityIndicator.center = view.center
-        activityIndicator.startAnimating()
-        view.addSubview(activityIndicator)
-        
-        DispatchQueue.global(qos: .utility).async {
-            let result = self.loadItems()
-                .flatMap{self.loadItemImages($0)}
-            
-            DispatchQueue.main.async {
-                switch result {
-                case let .success(data):
-                    self.items = data
-                    self.tableView.reloadData()
-                case let .failure(error):
-                    print(error)
-                }
-                activityIndicator.stopAnimating()
-            }
-        }
-    }
-    
-    func loadItems() -> Result<[ItemCodable], Error>{
-        let apiURL = "https://digitalvision.rs/parametri.php?action=artikliPoKategorijiEng&id=\(categoryID!)"
-        guard let url = URL(string: apiURL) else {
-            return .failure(NetworkError.url)
-        }
-        var result: Result<[ItemCodable], Error>!
-        let semaphore = DispatchSemaphore(value: 0)
-        
+    func loadItems(){
+        let url = URL(string: "https://digitalvision.rs/parametri.php?action=artikliPoKategorijiEng&id=\(categoryID!)")!
         URLSession.shared.dataTask(with: url) { (data, _, _) in
             if let data = data {
-                if let items = self.parseJSON(data) {
-                    result = .success(items)
+                do {
+                    let decoder = JSONDecoder()
+                    let itemsCodable = try decoder.decode(Array<ItemCodable>.self, from: data)
+                    self.loadItemsImages(itemsCodable)
+                } catch {
+                    print("error parsing items")
                 }
             } else{
-                result = .failure(NetworkError.server)
+                print("error fetching items")
             }
-            semaphore.signal()
         }.resume()
-        
-        _ = semaphore.wait(wallTimeout: .distantFuture)
-        
-        return result
     }
     
-    func loadItemImages(_ itemsCodable: [ItemCodable]) -> Result<[Item], Error>{
-        var result:Result<[Item], Error>
+    func loadItemsImages(_ itemsCodable: [ItemCodable]){
         var items:[Item] = []
-        let semaphore = DispatchSemaphore(value: 0)
         
         for item in itemsCodable {
             KingfisherManager.shared.retrieveImage(with: item.MainImage) { result in
@@ -111,30 +82,22 @@ class ItemListViewController: UITableViewController{
                     let image = try result.get().image
                     items.append(Item(item: item, image: image))
                 } catch{
-                    print("error fetching image")
+                    print("error fetching item image")
                     items.append(Item(item: item, image: UIImage(systemName: "desktopcomputer")!))
                 }
                 
                 if (items.count == itemsCodable.count){
-                    semaphore.signal()
+                    self.buildUI(items)
                 }
             }
         }
-        _ = semaphore.wait(wallTimeout: .distantFuture)
-        
-        result = .success(items)
-        return result
     }
     
-    func parseJSON(_ data: Data) -> Array<ItemCodable>?{
-        let decoder = JSONDecoder()
-        do {
-            let itemCodable = try decoder.decode(Array<ItemCodable>.self, from: data)
-            return itemCodable
-            
-        } catch {
-            print(error)
-            return nil
+    func buildUI(_ items:[Item]) {
+        DispatchQueue.main.async {
+            self.items = items
+            self.tableView.reloadData()
+            self.activityIndicator.stopAnimating()
         }
     }
 }
