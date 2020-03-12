@@ -9,7 +9,7 @@
 import UIKit
 import Kingfisher
 
-class ItemListViewController: UITableViewController{
+class ItemListViewController: UITableViewController, passName{
     var categoryID: Int?
     var items: [Item] = []
     let activityIndicator = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.large)
@@ -36,9 +36,11 @@ class ItemListViewController: UITableViewController{
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "ItemListViewCellID", for: indexPath) as! ItemListViewCell
+        cell.addToCart.tag = indexPath.row
         cell.cellImage.image = items[indexPath.row].mainImage
         cell.nameLabel.text = items[indexPath.row].name
         cell.priceLabel.text = "Cena: \(items[indexPath.row].price)€"
+        cell.delegate = self
         return cell
     }
     
@@ -99,5 +101,11 @@ class ItemListViewController: UITableViewController{
             self.tableView.reloadData()
             self.activityIndicator.stopAnimating()
         }
+    }
+    
+    func showMessage(_ i: Int) {
+        let alert = UIAlertController(title: "Added to cart 🛒", message: items[i].name, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        self.present(alert, animated: true)
     }
 }

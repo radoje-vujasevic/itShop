@@ -24,6 +24,9 @@ class ItemViewController: UIViewController, UIScrollViewDelegate{
         super.viewDidLoad()
         scrollView.delegate=self
         
+        let scrollViewTap = UITapGestureRecognizer(target: self, action: #selector(scrollViewTapped))
+        scrollView.addGestureRecognizer(scrollViewTap)
+
         activityIndicator.center = view.center
         activityIndicator.startAnimating()
         view.addSubview(activityIndicator)
@@ -109,5 +112,14 @@ class ItemViewController: UIViewController, UIScrollViewDelegate{
         let alert = UIAlertController(title: "Added to cart 🛒", message: item!.name, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         self.present(alert, animated: true)
+    }
+    
+    @objc func scrollViewTapped() {
+        performSegue(withIdentifier: "segueToGallery", sender: self)
+    }
+
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        let destinationVC = segue.destination as! galleryViewController
+        destinationVC.item = item
     }
 }

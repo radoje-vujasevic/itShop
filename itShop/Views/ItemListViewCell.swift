@@ -8,15 +8,14 @@
 
 import UIKit
 protocol passName:class {
-    func showMessage()
+    func showMessage(_ i: Int)
 }
 
 class ItemListViewCell: UITableViewCell {
-    
     @IBOutlet weak var nameLabel: UILabel!
     @IBOutlet weak var priceLabel: UILabel!
     @IBOutlet weak var cellImage: UIImageView!
-    
+    @IBOutlet weak var addToCart: UIButton!
     weak var delegate: passName?
 
     override func awakeFromNib() {
@@ -30,7 +29,7 @@ class ItemListViewCell: UITableViewCell {
         // Configure the view for the selected state
     }
     
-    @IBAction func addToCart(_ sender: Any) {
-        delegate?.showMessage()
+    @IBAction func addToCart(_ sender: UIButton) {
+        delegate?.showMessage(sender.tag)
     }
 }

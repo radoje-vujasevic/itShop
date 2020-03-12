@@ -83,6 +83,7 @@
             </tableViewCellContentView>
             <viewLayoutGuide key="safeArea" id="njF-e1-oar"/>
             <connections>
+                <outlet property="addToCart" destination="kow-Lg-d2W" id="fPM-x8-UWI"/>
                 <outlet property="cellImage" destination="eYd-Xa-hxj" id="Cz8-FN-oez"/>
                 <outlet property="nameLabel" destination="6RR-CX-nhf" id="xBv-AI-oCo"/>
                 <outlet property="priceLabel" destination="iIN-rn-ifE" id="ZTz-Zf-ONA"/>
